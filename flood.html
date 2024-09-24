@@ -37,7 +37,7 @@
         // Add GeoJSON source (initially hour1.geojson)
         map.addSource('floodHotpoints', {
             'type': 'geojson',
-            'data': 'http://localhost:8081/hour1.geojson' // Replace with your actual path
+            'data': 'https://github.com/raedaldweik/flood-heatmap-data/blob/main/hour1.geojson' // Replace with your actual path
         });
 
         // Add the heatmap layer
@@ -67,7 +67,7 @@
             if (currentHour > 2) currentHour = 1; // Loop between hour 1 and hour 2
 
             // Update the data source to use the next hour's GeoJSON
-            const newGeojson = `http://localhost:8081/hour2.geojson`; // Replace with actual paths
+            const newGeojson = `https://github.com/raedaldweik/flood-heatmap-data/blob/main/hour2.geojson`; // Replace with actual paths
             map.getSource('floodHotpoints').setData(newGeojson);
         }
 
