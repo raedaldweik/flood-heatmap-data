@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Hotpoint Heatmap</title>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #controls { position: absolute; top: 10px; left: 10px; z-index: 1; }
+        #playPauseButton { padding: 10px; background-color: #fff; border: 1px solid #ccc; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="controls">
+    <button id="playPauseButton">Pause</button>
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoicmFlZGR3ZWlrIiwiYSI6ImNtMTZqZGtpeTBta2cydnM4NjBkenhsMG8ifQ.r3ufHWJMoGh_DCH3XDhDAg'; // Replace with your Mapbox access token
+    const map = new mapboxgl.Map({
+        container: 'map', // container ID
+        style: 'mapbox://styles/mapbox/streets-v11', // Basic Mapbox style
+        center: [55.267536, 25.198461], // Starting position [lng, lat]
+        zoom: 12 // Starting zoom level
+    });
+
+    let currentHour = 1; // Starting with hour 1
+    let interval;
+    let isPlaying = true;
+
+    map.on('load', function () {
+        // Add GeoJSON source (initially hour1.geojson)
+        map.addSource('floodHotpoints', {
+            'type': 'geojson',
+            'data': 'http://localhost:8081/hour1.geojson' // Replace with your actual path
+        });
+
+        // Add the heatmap layer
+        map.addLayer({
+            'id': 'flood-heatmap',
+            'type': 'heatmap',
+            'source': 'floodHotpoints',
+            'paint': {
+                // Use water_depth for heatmap intensity and color
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'water_depth'], 0, 0, 10, 1],
+                'heatmap-intensity': 1,
+                'heatmap-radius': 30,
+                'heatmap-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['heatmap-density'],
+                    0, 'blue',    // Shallow water
+                    0.5, 'yellow', // Medium water depth
+                    1, 'red'      // Deep water
+                ]
+            }
+        });
+
+        // Function to update the heatmap with new data (switching between hour1 and hour2)
+        function updateHeatmap() {
+            currentHour++;
+            if (currentHour > 2) currentHour = 1; // Loop between hour 1 and hour 2
+
+            // Update the data source to use the next hour's GeoJSON
+            const newGeojson = `http://localhost:8081/hour2.geojson`; // Replace with actual paths
+            map.getSource('floodHotpoints').setData(newGeojson);
+        }
+
+        // Start the animation (every 5 seconds for testing, change to 1 hour as needed)
+        interval = setInterval(updateHeatmap, 5000); // Change 5000 to 1000 * 60 * 60 for 1 hour
+
+        // Button to play/pause the animation
+        const playPauseButton = document.getElementById('playPauseButton');
+        playPauseButton.addEventListener('click', function () {
+            if (isPlaying) {
+                clearInterval(interval); // Stop the animation
+                playPauseButton.textContent = 'Play';
+            } else {
+                interval = setInterval(updateHeatmap, 5000); // Restart the animation
+                playPauseButton.textContent = 'Pause';
+            }
+            isPlaying = !isPlaying; // Toggle play/pause state
+        });
+    });
+
+</script>
+
+</body>
+</html>
