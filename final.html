@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Mapbox with Flood Gradient, Rain, Pulsing Dot, and Time Slider</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+        /* Modal styling */
+        #callAgentModal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent background */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 800px;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .close-button {
+            align-self: flex-end;
+            background-color: #ff5c5c;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .close-button:hover {
+            background-color: #ff2b2b;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Rain animation style */
+        .rain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            overflow: hidden;
+            display: none; /* Hidden by default, shown only on zoom-in */
+        }
+
+        .rain-drop {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.7);
+            width: 1px;
+            height: 60px;
+            border-radius: 50%;
+            filter: blur(1px); /* Add blur for more realism */
+            animation: fall 1.5s linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100%);
+            }
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        .mapboxgl-popup-content img, .mapboxgl-popup-content video {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Overlay styling for slider and play button */
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            z-index: 1;
+            background-color: white;
+            padding: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+            width: 250px;
+            top: 10px;
+            left: 10px;
+        }
+
+        #slider {
+            width: 100%;
+        }
+
+        .play-button {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .play-button:active {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div class="rain"></div> <!-- Rain container -->
+
+<div class="map-overlay">
+    <h2>Flood Levels Over Time</h2>
+    <label id="time">Time: 0</label>
+    <input id="slider" type="range" min="0" max="6" step="1" value="0">
+    <button class="play-button" id="playPause">Play</button>
+</div>
+
+<!-- Modal structure for the popup -->
+<div id="callAgentModal">
+    <div class="modal-content">
+        <button class="close-button" id="closeModal">Close</button>
+        <iframe id="iframeContent" src="about:blank" allowfullscreen></iframe> <!-- Iframe for the content -->
+    </div>
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoicmFlZGR3ZWlrIiwiYSI6ImNtMTZqZGtpeTBta2cydnM4NjBkenhsMG8ifQ.r3ufHWJMoGh_DCH3XDhDAg'; // Add your Mapbox access token here
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/raeddweik/cm1eudgu102ju01pb8tmdb81t', // Use your style URL from Mapbox Studio
+        center: [55.2708, 25.1954], // Initial center (Dubai)
+        zoom: 12, // Zoomed out initially
+        pitch: 60, // High pitch for 3D view
+        bearing: -17 // Bearing to create a dynamic view
+    });
+
+    // Add navigation controls
+    map.addControl(new mapboxgl.NavigationControl());
+
+    // GeoJSON data for roads
+    const geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            // First road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.26992035455379, 25.203370128119772],
+                        [55.269658439804374, 25.20299065050419],
+                        [55.269390130030416, 25.202602969150064],
+                        [55.26913244185869, 25.20222561452988],
+                        [55.26887227183457, 25.201842470289677],
+                        [55.268613579236785, 25.201461218745095],
+                        [55.268341466592716, 25.201079231919124],
+                        [55.26808004645051, 25.200704368689287],
+                        [55.26780793344818, 25.20032237953494],
+                        [55.26753482184668, 25.19994561909347],
+                        [55.26726361397459, 25.19957467536298],
+                        [55.26698250501474, 25.19920091732864],
+                        [55.266702462182764, 25.198824178537635]
+                    ]
+                }
+            },
+            // Second road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.26970327395304, 25.20349534830072],
+                        [55.26943275359281, 25.203114068439618],
+                        [55.26917029842241, 25.20273175050319],
+                        [55.268940731620575, 25.20240297949664],
+                        [55.26863910090441, 25.2019732660292],
+                        [55.268380839352176, 25.201596323694403],
+                        [55.268110341762934, 25.201215105910237],
+                        [55.267841173131956, 25.200832736246568],
+                        [55.267578890596866, 25.200456342942047],
+                        [55.26730102544144, 25.200077213075602],
+                        [55.26702846839561, 25.19970215371336],
+                        [55.26675683026892, 25.199333742864027],
+                        [55.26647251825446, 25.19896335014846]
+                    ]
+                }
+            }
+        ]
+    };
+
+    const floodLevels = [
+        [0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0],  // Time 0
+        [0, 1, 1, 2, 2, 2, 2, 1, 1, 0, 0, 0],  // Time 1
+        [1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0],  // Time 2
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0],  // Time 3
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],  // Time 4
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],  // Time 5
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]   // Time 6
+    ];
+
+    const colors = ['#00435e', 'yellow', 'red'];  // Flood level colors
+
+    function updateLineGradient(time) {
+        geojson.features.forEach((feature, index) => {
+            const coordinates = feature.geometry.coordinates;
+            const gradient = floodLevels[time].map(level => colors[level]);
+            const step = 1 / (coordinates.length - 1);
+
+            const lineGradient = ['interpolate', ['linear'], ['line-progress']];
+            for (let i = 0; i < gradient.length; i++) {
+                lineGradient.push(i * step, gradient[i]);
+            }
+
+            map.setPaintProperty(`line-${index}`, 'line-gradient', lineGradient);
+        });
+    }
+
+    map.on('load', () => {
+        geojson.features.forEach((feature, index) => {
+            map.addSource(`line-${index}`, {
+                type: 'geojson',
+                lineMetrics: true,
+                data: feature
+            });
+
+            map.addLayer({
+                type: 'line',
+                source: `line-${index}`,
+                id: `line-${index}`,
+                paint: {
+                    'line-color': '#00435e',
+                    'line-width': 14,
+                    'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#00435e', 1, '#00435e']
+                },
+                layout: {
+                    'line-cap': 'round',
+                    'line-join': 'round'
+                },
+                minzoom: 16
+            });
+        });
+
+        updateLineGradient(0);
+
+        let isPlaying = false;
+        let playInterval;
+
+        function startAnimation() {
+            isPlaying = true;
+            document.getElementById('playPause').textContent = 'Pause';
+            playInterval = setInterval(() => {
+                const slider = document.getElementById('slider');
+                let currentValue = parseInt(slider.value, 10);
+                if (currentValue < 6) {
+                    slider.value = currentValue + 1;
+                } else {
+                    slider.value = 0;
+                }
+                document.getElementById('time').textContent = `Time: ${slider.value}`;
+                updateLineGradient(parseInt(slider.value, 10));
+            }, 1000);
+        }
+
+        function stopAnimation() {
+            isPlaying = false;
+            document.getElementById('playPause').textContent = 'Play';
+            clearInterval(playInterval);
+        }
+
+        document.getElementById('playPause').addEventListener('click', () => {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                startAnimation();
+            }
+        });
+
+        document.getElementById('slider').addEventListener('input', (e) => {
+            const time = parseInt(e.target.value, 10);
+            document.getElementById('time').textContent = `Time: ${time}`;
+            updateLineGradient(time);
+        });
+
+        createRainDrops();
+
+        // Pulsing dot for inundation indicator
+        const pulsingDotCoordinates = [55.267320151844956, 25.199635836818004];
+        const size = 200;
+        const pulsingDot = {
+            width: size,
+            height: size,
+            data: new Uint8Array(size * size * 4),
+
+            onAdd: function () {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                this.context = canvas.getContext('2d');
+            },
+
+            render: function () {
+                const duration = 1000;
+                const t = (performance.now() % duration) / duration;
+                const radius = (size / 2) * 0.3;
+                const outerRadius = (size / 2) * 0.7 * t + radius;
+                const context = this.context;
+
+                context.clearRect(0, 0, this.width, this.height);
+                context.beginPath();
+                context.arc(this.width / 2, this.height / 2, outerRadius, 0, Math.PI * 2);
+                context.fillStyle = `rgba(255, 200, 200, ${1 - t})`;
+                context.fill();
+
+                context.beginPath();
+                context.arc(this.width / 2, this.height / 2, radius, 0, Math.PI * 2);
+                context.fillStyle = 'rgba(255, 100, 100, 1)';
+                context.strokeStyle = 'white';
+                context.lineWidth = 2 + 4 * (1 - t);
+                context.fill();
+                context.stroke();
+
+                this.data = context.getImageData(0, 0, this.width, this.height).data;
+                map.triggerRepaint();
+
+                return true;
+            }
+        };
+
+        map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
+        map.addSource('dot-point', {
+            'type': 'geojson',
+            'data': {
+                'type': 'FeatureCollection',
+                'features': [{
+                    'type': 'Feature',
+                    'properties': { 'description': '<strong>Alert: Inundation Indicator</strong>' },
+                    'geometry': { 'type': 'Point', 'coordinates': pulsingDotCoordinates }
+                }]
+            }
+        });
+
+        map.addLayer({
+            'id': 'layer-with-pulsing-dot',
+            'type': 'symbol',
+            'source': 'dot-point',
+            'layout': { 'icon-image': 'pulsing-dot' },
+            'minzoom': 10,
+            'maxzoom': 15
+        });
+
+        const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+
+        map.on('mouseenter', 'layer-with-pulsing-dot', (e) => {
+            map.getCanvas().style.cursor = 'pointer';
+            const coordinates = e.features[0].geometry.coordinates.slice();
+            const description = e.features[0].properties.description;
+            popup.setLngLat(coordinates).setHTML(description).addTo(map);
+        });
+
+        map.on('mouseleave', 'layer-with-pulsing-dot', () => {
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+        });
+
+        map.on('click', 'layer-with-pulsing-dot', () => {
+            map.flyTo({
+                center: pulsingDotCoordinates,
+                zoom: 18,
+                bearing: 0,
+                pitch: 75,
+                speed: 2,
+                curve: 1
+            });
+        });
+
+        // Add sources and layers for the interactive website popup point
+        const interactiveWebsiteCoordinates = [55.26670481949742, 25.199775031025965];
+        map.addSource('website-point', {
+            'type': 'geojson',
+            'data': {
+                'type': 'FeatureCollection',
+                'features': [
+                    {
+                        'type': 'Feature',
+                        'properties': {
+                            'url': 'https://raedaldweik.github.io/flood_SDK/' // URL of the website to embed
+                        },
+                        'geometry': {
+                            'type': 'Point',
+                            'coordinates': interactiveWebsiteCoordinates
+                        }
+                    }
+                ]
+            }
+        });
+
+        map.addLayer({
+            'id': 'website-popup-layer',
+            'type': 'circle',
+            'source': 'website-point',
+            'paint': {
+                'circle-color': '#4264fb',
+                'circle-radius': 8,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff'
+            },
+            'minzoom': 15 // Show only when zoomed in (at zoom level 15 or greater)
+        });
+
+        // Click Event for Website Point (to trigger custom modal)
+        map.on('click', 'website-popup-layer', (e) => {
+            const url = e.features[0].properties.url; // Get the URL from the feature properties
+            const modal = document.getElementById("callAgentModal");
+            const iframe = document.getElementById("iframeContent");
+
+            // Set the iframe URL and show the modal
+            iframe.src = url;
+            modal.style.display = "flex"; // Show the modal
+        });
+
+        // Close the modal when clicking the close button
+        document.getElementById("closeModal").onclick = function() {
+            const modal = document.getElementById("callAgentModal");
+            modal.style.display = "none";
+            document.getElementById("iframeContent").src = "about:blank"; // Clear the iframe src to stop the video/content
+        };
+
+        // Change cursor to pointer when hovering over the points
+        map.on('mouseenter', 'website-popup-layer', () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Reset cursor when it leaves the points
+        map.on('mouseleave', 'website-popup-layer', () => {
+            map.getCanvas().style.cursor = '';
+        });
+    });
+
+    // Function to create rain drops
+    function createRainDrops() {
+        const rainContainer = document.querySelector('.rain');
+        const numberOfDrops = 250; // Increased number of raindrops for more density
+        for (let i = 0; i < numberOfDrops; i++) {
+            const drop = document.createElement('div');
+            drop.classList.add('rain-drop');
+            
+            // Randomize the size and length of the raindrop for variation
+            const dropWidth = Math.random() * 2 + 1 + 'px';  // Width between 1px and 3px
+            const dropHeight = Math.random() * 50 + 40 + 'px';  // Height between 40px and 90px
+            drop.style.width = dropWidth;
+            drop.style.height = dropHeight;
+            drop.style.left = Math.random() * window.innerWidth + 'px';
+            drop.style.top = Math.random() * window.innerHeight + 'px';
+            drop.style.animationDuration = (Math.random() * 1.5 + 0.5) + 's'; // Vary the speed slightly
+            drop.style.opacity = Math.random() * 0.5 + 0.3;  // Vary the opacity slightly for depth
+
+            rainContainer.appendChild(drop);
+        }
+    }
+
+    // Add the logic for displaying the rain animation when zoomed in
+    map.on('load', () => {
+        // Existing map loading logic...
+
+        // Create rain drops but keep hidden initially
+        createRainDrops();
+
+        // Check zoom level and display rain only when zoomed in
+        map.on('zoom', () => {
+            const zoomLevel = map.getZoom();
+            const rainContainer = document.querySelector('.rain');
+
+            if (zoomLevel >= 16) {
+                rainContainer.style.display = 'block';  // Show rain when zoomed in
+            } else {
+                rainContainer.style.display = 'none';   // Hide rain when zoomed out
+            }
+        });
+    });
+
+    // Adjust raindrop positions on window resize
+    window.addEventListener('resize', () => {
+        const rainContainer = document.querySelector('.rain');
+        rainContainer.innerHTML = '';  // Clear the existing raindrops
+        createRainDrops();  // Recreate them
+    });
+</script>
+
+</body>
+</html>
+

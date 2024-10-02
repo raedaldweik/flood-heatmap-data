@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flood Alerts Map</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+
+    #map {
+      position: relative;
+      flex-grow: 1;
+    }
+
+    #alert-details {
+      width: 400px;
+      background-color: #f7f7f7;
+      padding: 20px;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+
+    #alert-details h2 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .alert-info {
+      margin-bottom: 20px;
+    }
+
+    .alert-info label {
+      font-weight: bold;
+    }
+
+    .alert-severity {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      background-color: #f00;
+      color: #fff;
+    }
+
+    .action-buttons {
+      margin-top: 20px;
+    }
+
+    .action-buttons button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .action-buttons button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Modal styling */
+    #callAgentModal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 800px;
+      height: 80%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .close-button {
+      align-self: flex-end;
+      background-color: #ff5c5c;
+      border: none;
+      color: white;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .close-button:hover {
+      background-color: #ff2b2b;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <div id="alert-details">
+    <h2>Alert Details</h2>
+    <div class="alert-info">
+      <label>Alert Title/Type:</label>
+      <p id="alert-title">Click a dot for details</p>
+    </div>
+    <div class="alert-info">
+      <label>Location:</label>
+      <p id="alert-location">-</p>
+    </div>
+    <div class="alert-info">
+      <label>Time and Date:</label>
+      <p id="alert-time">-</p>
+    </div>
+    <div class="alert-info">
+      <label>Flood Severity:</label>
+      <span id="alert-severity" class="alert-severity">-</span>
+    </div>
+    <div class="alert-info">
+      <label>Detailed Description:</label>
+      <p id="alert-description">-</p>
+    </div>
+    <div class="alert-info">
+      <label>Recommendation:</label>
+      <p id="alert-recommendation">-</p>
+    </div>
+
+    <div class="action-buttons">
+      <button onclick="sendAlert()">Send Alert</button>
+      <button onclick="callAgent()">Call Agent</button>
+    </div>
+  </div>
+
+  <!-- Modal for Call Agent -->
+  <div id="callAgentModal">
+    <div class="modal-content">
+      <button class="close-button" onclick="closeModal()">Close</button>
+      <iframe id="videoCallIframe" src="about:blank"></iframe>
+    </div>
+  </div>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoicmFlZGR3ZWlrIiwiYSI6ImNtMTZqZGtpeTBta2cydnM4NjBkenhsMG8ifQ.r3ufHWJMoGh_DCH3XDhDAg'; // Make sure you use your actual Mapbox token!
+    const map = new mapboxgl.Map({
+      container: 'map',
+      center: [55.2708, 25.2048],
+      zoom: 10,
+      style: 'mapbox://styles/mapbox/streets-v12'
+    });
+
+    const size = 200;
+
+    const pulsingDot = {
+      width: size,
+      height: size,
+      data: new Uint8Array(size * size * 4),
+      onAdd: function () {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.width;
+        canvas.height = this.height;
+        this.context = canvas.getContext('2d', { willReadFrequently: true });
+      },
+      render: function () {
+        const duration = 1000;
+        const t = (performance.now() % duration) / duration;
+        const radius = (size / 2) * 0.3;
+        const outerRadius = (size / 2) * 0.7 * t + radius;
+        const context = this.context;
+
+        context.clearRect(0, 0, this.width, this.height);
+        context.beginPath();
+        context.arc(this.width / 2, this.height / 2, outerRadius, 0, Math.PI * 2);
+        context.fillStyle = `rgba(255, 200, 200, ${1 - t})`;
+        context.fill();
+
+        context.beginPath();
+        context.arc(this.width / 2, this.height / 2, radius, 0, Math.PI * 2);
+        context.fillStyle = 'rgba(255, 100, 100, 1)';
+        context.strokeStyle = 'white';
+        context.lineWidth = 2 + 4 * (1 - t);
+        context.fill();
+        context.stroke();
+
+        this.data = context.getImageData(0, 0, this.width, this.height).data;
+
+        map.triggerRepaint();
+        return true;
+      }
+    };
+
+    const alertData = [
+      {
+        title: "Flood Alert 1",
+        location: "Dubai, Area 1",
+        time: "2024-10-01 12:00 PM",
+        severity: "High",
+        description: "Flood levels rising in Area 1.",
+        recommendation: "Avoid roads in Area 1."
+      },
+      {
+        title: "Flood Alert 2",
+        location: "Dubai, Area 2",
+        time: "2024-10-01 1:00 PM",
+        severity: "Moderate",
+        description: "Moderate flooding in Area 2.",
+        recommendation: "Proceed with caution on major roads."
+      },
+      {
+        title: "Flood Alert 3",
+        location: "Dubai, Area 3",
+        time: "2024-10-01 2:00 PM",
+        severity: "Low",
+        description: "Light flooding in Area 3.",
+        recommendation: "No major concerns. Monitor situation."
+      }
+    ];
+
+    map.on('load', () => {
+      map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
+
+      const coordinates = [
+        [55.2708, 25.2048],
+        [55.3108, 25.2348],
+        [55.2508, 25.1848]
+      ];
+
+      coordinates.forEach((coord, index) => {
+        map.addSource(`dot-point-${index}`, {
+          'type': 'geojson',
+          'data': {
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Point',
+              'coordinates': coord
+            }
+          }
+        });
+
+        map.addLayer({
+          'id': `layer-with-pulsing-dot-${index}`,
+          'type': 'symbol',
+          'source': `dot-point-${index}`,
+          'layout': {
+            'icon-image': 'pulsing-dot'
+          }
+        });
+
+        // Add click event for each pulsing dot
+        map.on('click', `layer-with-pulsing-dot-${index}`, () => {
+          updateAlertDetails(alertData[index]);
+        });
+      });
+
+      // Ensure the map resizes to fit the container
+      map.resize();
+    });
+
+    // Function to update alert details
+    function updateAlertDetails(alert) {
+      document.getElementById("alert-title").textContent = alert.title;
+      document.getElementById("alert-location").textContent = alert.location;
+      document.getElementById("alert-time").textContent = alert.time;
+      document.getElementById("alert-severity").textContent = alert.severity;
+      document.getElementById("alert-description").textContent = alert.description;
+      document.getElementById("alert-recommendation").textContent = alert.recommendation;
+    }
+
+    // Placeholder function for send alert
+    function sendAlert() {
+      alert("Alert sent!");
+    }
+
+    // Function to open the call agent modal with the video call
+    function callAgent() {
+      const modal = document.getElementById("callAgentModal");
+      const iframe = document.getElementById("videoCallIframe");
+
+      iframe.src = "https://nextjs-zegocloud-uikits2-three.vercel.app/?roomID=EWojY"; // Your video call URL
+      modal.style.display = "flex";
+    }
+
+    // Function to close the modal
+    function closeModal() {
+      const modal = document.getElementById("callAgentModal");
+      const iframe = document.getElementById("videoCallIframe");
+
+      iframe.src = "about:blank"; // Reset the iframe when closed
+      modal.style.display = "none";
+    }
+  </script>
+
+</body>
+</html>
