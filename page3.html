@@ -164,7 +164,7 @@
     const map = new mapboxgl.Map({
       container: 'map',
       center: [55.2708, 25.2048],
-      zoom: 10,
+      zoom: 12,
       style: 'mapbox://styles/mapbox/streets-v12'
     });
 
@@ -210,28 +210,28 @@
 
     const alertData = [
       {
-        title: "Flood Alert 1",
-        location: "Dubai, Area 1",
+        title: "Critical Inundation Alert",
+        location: "Business Bay, Al A'amal St",
         time: "2024-10-01 12:00 PM",
-        severity: "High",
-        description: "Flood levels rising in Area 1.",
-        recommendation: "Avoid roads in Area 1."
+        severity: "Critical",
+        description: "Innundation level above critical threshold. Near multiple residencial buildings.",
+        recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
       },
       {
-        title: "Flood Alert 2",
-        location: "Dubai, Area 2",
-        time: "2024-10-01 1:00 PM",
-        severity: "Moderate",
-        description: "Moderate flooding in Area 2.",
-        recommendation: "Proceed with caution on major roads."
+        title: "Critical Inundation Alert",
+        location: "Jumeirah, Jumeirah Beach Rd",
+        time: "2024-10-01 11:00 AM",
+        severity: "Critical",
+        description: "Innundation level above critical threshold. Within close proximity to multiple residencial buildings and surgery center.",
+        recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
       },
       {
-        title: "Flood Alert 3",
-        location: "Dubai, Area 3",
-        time: "2024-10-01 2:00 PM",
-        severity: "Low",
-        description: "Light flooding in Area 3.",
-        recommendation: "No major concerns. Monitor situation."
+        title: "Critical Inundation Alert",
+        location: "Jumeirah, Al Mina St",
+        time: "2024-10-01 9:00 AM",
+        severity: "Critical",
+        description: "Innundation level above critical threshold.",
+        recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
       }
     ];
 
@@ -239,9 +239,9 @@
       map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
 
       const coordinates = [
-        [55.2708, 25.2048],
-        [55.3108, 25.2348],
-        [55.2508, 25.1848]
+        [55.26517078270922, 25.180744261306515],
+        [55.24926211261692, 25.215564490569335],
+        [55.271221405988285, 25.240610966102693]
       ];
 
       coordinates.forEach((coord, index) => {
@@ -262,7 +262,8 @@
           'source': `dot-point-${index}`,
           'layout': {
             'icon-image': 'pulsing-dot'
-          }
+          },
+          'minzoom': 0  // Show at all zoom levels
         });
 
         // Add click event for each pulsing dot
@@ -295,7 +296,7 @@
       const modal = document.getElementById("callAgentModal");
       const iframe = document.getElementById("videoCallIframe");
 
-      iframe.src = "https://nextjs-zegocloud-uikits2-three.vercel.app/?roomID=EWojY"; // Your video call URL
+      iframe.src = "http://localhost:8081/video.html"; // Updated URL for local video call
       modal.style.display = "flex";
     }
 
