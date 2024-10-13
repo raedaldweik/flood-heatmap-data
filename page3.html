@@ -1,314 +1,108 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flood Alerts Map</title>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
-  <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      height: 100vh;
-    }
 
-    #map {
-      position: relative;
-      flex-grow: 1;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to My Chatbot</title>
 
-    #alert-details {
-      width: 400px;
-      background-color: #f7f7f7;
-      padding: 20px;
-      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-      overflow-y: auto;
-    }
+    <style>
 
-    #alert-details h2 {
-      margin-top: 0;
-      color: #333;
-    }
+        /* General Styles */
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Full height */
+            background: linear-gradient(135deg, #2c3e50, #4b79a1);
+            color: #ffffff;
+            position: relative; /* Set position for overlay */
+        }
 
-    .alert-info {
-      margin-bottom: 20px;
-    }
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #4b6cb7, #182848);
+            padding: 15px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
 
-    .alert-info label {
-      font-weight: bold;
-    }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #ffffff;
+        }
 
-    .alert-severity {
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 4px;
-      background-color: #f00;
-      color: #fff;
-    }
+        /* Content */
+        .content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
 
-    .action-buttons {
-      margin-top: 20px;
-    }
+        .chatbot-iframe {
+            width: 100%;
+            height: calc(100% - 50px);
+            border: none;
+            position: relative;
+            z-index: 1;
+            background: #2e3b4e; /* Darker background for chat */
+            border-radius: 10px;
+            color: #fff; /* Ensure text is white for readability */
+        }
 
-    .action-buttons button {
-      padding: 10px 20px;
-      margin-right: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 4px;
-    }
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #182848, #4b6cb7);
+            height: 60px; /* Set height of footer */
+            text-align: center;
+            color: white;
+            padding: 10px 0;
+            position: absolute; /* Overlay the footer */
+            bottom: 0; /* Stick to bottom */
+            left: 0; /* Full width */
+            width: 100%; /* Full width */
+            z-index: 2; /* Ensure footer is on top of iframe */
+            box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.3);
+        }
 
-    .action-buttons button:hover {
-      background-color: #0056b3;
-    }
+        .footer p {
+            margin: 0;
+            font-size: 14px;
+        }
 
-    /* Modal styling */
-    #callAgentModal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      justify-content: center;
-      align-items: center;
-    }
+        /* Cool Transitions */
+        .header h1, .footer p {
+            transition: color 0.3s ease;
+        }
 
-    .modal-content {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      width: 80%;
-      max-width: 800px;
-      height: 80%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
+        .header:hover h1, .footer:hover p {
+            color: #FFD700; /* Cool golden hover effect */
+        }
 
-    .close-button {
-      align-self: flex-end;
-      background-color: #ff5c5c;
-      border: none;
-      color: white;
-      padding: 5px 10px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
+    </style>
 
-    .close-button:hover {
-      background-color: #ff2b2b;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-  </style>
 </head>
+
 <body>
 
-  <div id="map"></div>
-
-  <div id="alert-details">
-    <h2>Alert Details</h2>
-    <div class="alert-info">
-      <label>Alert Title/Type:</label>
-      <p id="alert-title">Click a dot for details</p>
-    </div>
-    <div class="alert-info">
-      <label>Location:</label>
-      <p id="alert-location">-</p>
-    </div>
-    <div class="alert-info">
-      <label>Time and Date:</label>
-      <p id="alert-time">-</p>
-    </div>
-    <div class="alert-info">
-      <label>Flood Severity:</label>
-      <span id="alert-severity" class="alert-severity">-</span>
-    </div>
-    <div class="alert-info">
-      <label>Detailed Description:</label>
-      <p id="alert-description">-</p>
-    </div>
-    <div class="alert-info">
-      <label>Recommendation:</label>
-      <p id="alert-recommendation">-</p>
+    <div class="header">
+        <h1>Ask SAS</h1>
     </div>
 
-    <div class="action-buttons">
-      <button onclick="sendAlert()">Send Alert</button>
-      <button onclick="callAgent()">Call Agent</button>
+    <div class="content">
+        <iframe src="https://www.chatbase.co/chatbot-iframe/qciiVyTwO9Rn-Cp1p0-C-"
+            class="chatbot-iframe"></iframe>
     </div>
-  </div>
 
-  <!-- Modal for Call Agent -->
-  <div id="callAgentModal">
-    <div class="modal-content">
-      <button class="close-button" onclick="closeModal()">Close</button>
-      <iframe id="videoCallIframe" src="about:blank"></iframe>
+    <div class="footer">
+        <p>SAS</p>
     </div>
-  </div>
-
-  <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoicmFlZGR3ZWlrIiwiYSI6ImNtMTZqZGtpeTBta2cydnM4NjBkenhsMG8ifQ.r3ufHWJMoGh_DCH3XDhDAg'; // Make sure you use your actual Mapbox token!
-    const map = new mapboxgl.Map({
-      container: 'map',
-      center: [55.2708, 25.2048],
-      zoom: 12,
-      style: 'mapbox://styles/mapbox/streets-v12'
-    });
-
-    const size = 200;
-
-    const pulsingDot = {
-      width: size,
-      height: size,
-      data: new Uint8Array(size * size * 4),
-      onAdd: function () {
-        const canvas = document.createElement('canvas');
-        canvas.width = this.width;
-        canvas.height = this.height;
-        this.context = canvas.getContext('2d', { willReadFrequently: true });
-      },
-      render: function () {
-        const duration = 1000;
-        const t = (performance.now() % duration) / duration;
-        const radius = (size / 2) * 0.3;
-        const outerRadius = (size / 2) * 0.7 * t + radius;
-        const context = this.context;
-
-        context.clearRect(0, 0, this.width, this.height);
-        context.beginPath();
-        context.arc(this.width / 2, this.height / 2, outerRadius, 0, Math.PI * 2);
-        context.fillStyle = `rgba(255, 200, 200, ${1 - t})`;
-        context.fill();
-
-        context.beginPath();
-        context.arc(this.width / 2, this.height / 2, radius, 0, Math.PI * 2);
-        context.fillStyle = 'rgba(255, 100, 100, 1)';
-        context.strokeStyle = 'white';
-        context.lineWidth = 2 + 4 * (1 - t);
-        context.fill();
-        context.stroke();
-
-        this.data = context.getImageData(0, 0, this.width, this.height).data;
-
-        map.triggerRepaint();
-        return true;
-      }
-    };
-
-    const alertData = [
-      {
-        title: "Critical Inundation Alert",
-        location: "Business Bay, Al A'amal St",
-        time: "2024-10-01 12:00 PM",
-        severity: "Critical",
-        description: "Innundation level above critical threshold. Near multiple residencial buildings.",
-        recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
-      },
-      {
-        title: "Critical Inundation Alert",
-        location: "Jumeirah, Jumeirah Beach Rd",
-        time: "2024-10-01 11:00 AM",
-        severity: "Critical",
-        description: "Innundation level above critical threshold. Within close proximity to multiple residencial buildings and surgery center.",
-        recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
-      },
-      {
-        title: "Critical Inundation Alert",
-        location: "Jumeirah, Al Mina St",
-        time: "2024-10-01 9:00 AM",
-        severity: "Critical",
-        description: "Innundation level above critical threshold.",
-        recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
-      }
-    ];
-
-    map.on('load', () => {
-      map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
-
-      const coordinates = [
-        [55.26517078270922, 25.180744261306515],
-        [55.24926211261692, 25.215564490569335],
-        [55.271221405988285, 25.240610966102693]
-      ];
-
-      coordinates.forEach((coord, index) => {
-        map.addSource(`dot-point-${index}`, {
-          'type': 'geojson',
-          'data': {
-            'type': 'Feature',
-            'geometry': {
-              'type': 'Point',
-              'coordinates': coord
-            }
-          }
-        });
-
-        map.addLayer({
-          'id': `layer-with-pulsing-dot-${index}`,
-          'type': 'symbol',
-          'source': `dot-point-${index}`,
-          'layout': {
-            'icon-image': 'pulsing-dot'
-          },
-          'minzoom': 0  // Show at all zoom levels
-        });
-
-        // Add click event for each pulsing dot
-        map.on('click', `layer-with-pulsing-dot-${index}`, () => {
-          updateAlertDetails(alertData[index]);
-        });
-      });
-
-      // Ensure the map resizes to fit the container
-      map.resize();
-    });
-
-    // Function to update alert details
-    function updateAlertDetails(alert) {
-      document.getElementById("alert-title").textContent = alert.title;
-      document.getElementById("alert-location").textContent = alert.location;
-      document.getElementById("alert-time").textContent = alert.time;
-      document.getElementById("alert-severity").textContent = alert.severity;
-      document.getElementById("alert-description").textContent = alert.description;
-      document.getElementById("alert-recommendation").textContent = alert.recommendation;
-    }
-
-    // Placeholder function for send alert
-    function sendAlert() {
-      alert("Alert sent!");
-    }
-
-    // Function to open the call agent modal with the video call
-    function callAgent() {
-      const modal = document.getElementById("callAgentModal");
-      const iframe = document.getElementById("videoCallIframe");
-
-      iframe.src = "http://localhost:8081/video.html"; // Updated URL for local video call
-      modal.style.display = "flex";
-    }
-
-    // Function to close the modal
-    function closeModal() {
-      const modal = document.getElementById("callAgentModal");
-      const iframe = document.getElementById("videoCallIframe");
-
-      iframe.src = "about:blank"; // Reset the iframe when closed
-      modal.style.display = "none";
-    }
-  </script>
 
 </body>
+
 </html>
