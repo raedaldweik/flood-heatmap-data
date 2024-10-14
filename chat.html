@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to My Chatbot</title>
+
+    <style>
+
+        /* General Styles */
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Full height */
+            background: linear-gradient(135deg, #2c3e50, #4b79a1);
+            color: #ffffff;
+            position: relative; /* Set position for overlay */
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #4b6cb7, #182848);
+            padding: 15px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #ffffff;
+        }
+
+        /* Content */
+        .content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chatbot-iframe {
+            width: 100%;
+            height: calc(100% - 50px);
+            border: none;
+            position: relative;
+            z-index: 1;
+            background: #2e3b4e; /* Darker background for chat */
+            border-radius: 10px;
+            color: #fff; /* Ensure text is white for readability */
+        }
+
+        /* Footer */
+        .footer {
+            background: linear-gradient(135deg, #182848, #4b6cb7);
+            height: 60px; /* Set height of footer */
+            text-align: center;
+            color: white;
+            padding: 10px 0;
+            position: absolute; /* Overlay the footer */
+            bottom: 0; /* Stick to bottom */
+            left: 0; /* Full width */
+            width: 100%; /* Full width */
+            z-index: 2; /* Ensure footer is on top of iframe */
+            box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        /* Cool Transitions */
+        .header h1, .footer p {
+            transition: color 0.3s ease;
+        }
+
+        .header:hover h1, .footer:hover p {
+            color: #FFD700; /* Cool golden hover effect */
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>Ask SAS</h1>
+    </div>
+
+    <div class="content">
+        <iframe src="https://www.chatbase.co/chatbot-iframe/qciiVyTwO9Rn-Cp1p0-C-"
+            class="chatbot-iframe"></iframe>
+    </div>
+
+    <div class="footer">
+        <p>SAS</p>
+    </div>
+
+</body>
+
+</html>
