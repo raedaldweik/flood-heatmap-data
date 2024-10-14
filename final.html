@@ -392,8 +392,8 @@
         map.flyTo({
             center: initialCenter,
             zoom: initialZoom,
-            pitch: 60,
-            bearing: -17,
+            pitch: 0,
+            bearing: 0,
             speed: 2
         });
         resetAlertDetails();
@@ -407,7 +407,7 @@
             time: "2024-10-01 12:00 PM",
             severity: "Critical",
             description: "Inundation level above critical threshold. Near multiple residential buildings.",
-            recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
+            recommendation: "Deploy drainage pumps to affected areas and issue alerts for residents in high-risk zones."
         },
         {
             title: "Critical Inundation Alert",
@@ -415,7 +415,7 @@
             time: "2024-10-01 11:00 AM",
             severity: "Critical",
             description: "Inundation level above critical threshold. Within close proximity to multiple residential buildings and surgery center.",
-            recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
+            recommendation: "Deploy drainage pumps to affected areas and issue alerts for residents in high-risk zones."
         },
         {
             title: "Critical Inundation Alert",
@@ -423,7 +423,7 @@
             time: "2024-10-01 9:00 AM",
             severity: "Critical",
             description: "Inundation level above critical threshold.",
-            recommendation: "Deploy drainage pumps to affected areas and issue evacuation alerts for residents in high-risk zones."
+            recommendation: "Deploy drainage pumps to affected areas and issue alerts for residents in high-risk zones."
         }
     ];
 
@@ -470,7 +470,7 @@
         const modal = document.getElementById("callAgentModal");
         const iframe = document.getElementById("videoCallIframe");
 
-        iframe.src = "http://localhost:8081/video.html"; // Update with actual URL
+        iframe.src = "https://raedaldweik.github.io/flood-heatmap-data/video.html"; // Update with actual URL
         modal.style.display = "flex";
     }
 
