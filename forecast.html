@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI-Powered Forecasting & Simulation</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet" />
+    <!-- Custom Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,600&display=swap" rel="stylesheet">
+    <style>
+/* General Styling */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+}
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Sidebar styling */
+#sidebar {
+    position: absolute;
+    width: 300px;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #3c5c7e, #1d2c43);
+    padding: 20px;
+    z-index: 1;
+    overflow: hidden; /* Hide overflow to remove scrollbar */
+    scrollbar-width: none; /* For Firefox */
+    -ms-overflow-style: none; /* For IE and Edge */
+    border-radius: 15px; /* Curved edges */
+    box-shadow: -2px 0 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Hide scrollbar for Chrome, Safari, and Opera */
+#sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+#sidebar h2, #sidebar h3, #sidebar p {
+    color: #ffffff;
+}
+
+#sidebar h2 {
+    margin: 0;
+    padding: 0;
+    font-size: 22px;
+}
+
+#sidebar h3 {
+    font-size: 18px;
+    cursor: pointer;
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+#sidebar p {
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+/* Alert Details Styling */
+#alert-details h3 {
+    margin-top: 20px;
+    color: #fff;
+    font-size: 18px; /* Reduced font size */
+    letter-spacing: 1px;
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+.alert-info {
+    margin-bottom: 10px; /* Reduced from 20px */
+    padding: 5px;        /* Reduced from 10px */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2); /* Reduced shadow */
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.alert-info:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2));
+}
+
+.alert-info label {
+    font-weight: bold;
+    font-size: 14px; /* Reduced from 16px */
+    color: #c1c8e4;
+}
+
+.alert-info p, .alert-info span {
+    margin-left: 5px;
+    color: #ffd700;
+    margin: 0;
+    font-size: 14px; /* Consistent font size */
+}
+
+.alert-severity {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background-color: #ff6b6b;
+    color: #fff;
+    font-weight: bold;
+    box-shadow: 0 0 5px rgba(255, 100, 100, 0.6);
+}
+
+/* Action buttons box styling */
+#action-box {
+    display: none;
+    position: absolute;
+    top: 100px;
+    right: 20px;
+    width: 220px;
+    background: linear-gradient(135deg, #3c5c7e, #1d2c43);
+    padding: 15px;
+    border-radius: 15px; /* Curved edges */
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+}
+
+#action-box h3 {
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.action-button {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    border-radius: 4px; /* Curved edges */
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s ease;
+}
+
+.action-button:hover {
+    background-color: #182848;
+}
+
+/* Forecasting section */
+.forecast-section {
+    margin-top: 15px;
+}
+
+.forecast-button {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #4b6cb7;
+    color: white;
+    border: none;
+    border-radius: 4px; /* Curved edges */
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s ease;
+}
+
+.forecast-button:hover {
+    background-color: #182848;
+}
+
+#slider {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Re-Center button styling */
+.recenter-button {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background-color: #4b6cb7;
+    color: white;
+    border: none;
+    border-radius: 5px; /* Curved edges */
+    cursor: pointer;
+    z-index: 10;
+    font-size: 14px;
+}
+
+.recenter-button:hover {
+    background-color: #182848;
+}
+
+/* Legend styling */
+#legend {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 4px; /* Curved edges */
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3);
+}
+
+#legend div {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+#legend div span {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    margin-right: 5px;
+}
+
+/* Modal styling */
+#analyticsModal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px; /* Curved edges */
+    width: 80%;
+    max-width: 800px;
+    height: 80%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.close-button {
+    align-self: flex-end;
+    background-color: #ff5c5c;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px; /* Curved edges */
+    transition: background 0.3s ease;
+}
+
+.close-button:hover {
+    background-color: #ff2b2b;
+}
+
+/* CCTV Video Popup styling */
+.video-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    max-width: 80%;
+    background-color: white;
+    border: 2px solid #ccc;
+    border-radius: 8px; /* Curved edges */
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+}
+
+.video-popup video {
+    width: 100%;
+    height: auto;
+}
+
+.video-popup .close-button {
+    align-self: flex-end;
+    background-color: #ff5c5c;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px; /* Curved edges */
+    transition: background 0.3s ease;
+    margin: 5px;
+}
+
+.video-popup .close-button:hover {
+    background-color: #ff2b2b;
+}
+
+/* Overlay for video popup */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    display: none;
+}
+
+/* Pulsing Dot Styles */
+.mapboxgl-popup-content {
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+}
+
+.mapboxgl-popup-content strong {
+    font-size: 12px;
+    color: #333;
+}
+
+</style>
+
+</head>
+<body>
+
+<!-- Sidebar for the alerts -->
+<div id="sidebar">
+    <h2>AI-powered Forecasting & Simulation</h2>
+    <p>Click on an alert</p>
+
+    <!-- Alert details section -->
+    <div id="alert-details">
+        <h3>Alert Details</h3>
+        <p>Select an alert to see details.</p>
+    </div>
+</div>
+
+<!-- Action box for buttons and slider -->
+<div id="action-box">
+    <h3>Actions</h3>
+    <button class="action-button" id="viewAnalyticsButton">View Analytics</button>
+    <button class="action-button" onclick="callAgent()">CCTV</button>
+
+    <div class="forecast-section">
+        <h3>Forecasting</h3>
+        <input id="slider" type="range" min="0" max="6" step="1" value="0">
+        <button class="forecast-button" id="playPause">Forecast</button>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<!-- Re-Center Button -->
+<button class="recenter-button" id="recenterButton">Re-Center</button>
+
+<!-- Legend for flood levels -->
+<div id="legend">
+    <div><span style="background-color: #eef91a;"></span>Low Inundation</div>
+    <div><span style="background-color: #d36d64;"></span>Medium Inundation</div>
+    <div><span style="background-color: #b9467a;"></span>High Inundation</div>
+    <div><span style="background-color: #67009e;"></span>Critical Inundation</div>
+</div>
+
+<!-- CCTV Video Popup -->
+<div class="overlay" id="overlay"></div>
+<div class="video-popup" id="video-popup">
+    <button class="close-button" onclick="closeVideoPopup()">Close</button>
+    <video id="video-element" autoplay loop muted>
+        <source id="video-source" src="" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+</div>
+
+<!-- Modal structure for View Analytics -->
+<div id="analyticsModal">
+    <div class="modal-content">
+        <button class="close-button" onclick="closeAnalyticsModal()">Close</button>
+        <!-- The iframe will be dynamically added here -->
+    </div>
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoicmFlZGR3ZWlrIiwiYSI6ImNtMTZqZGtpeTBta2cydnM4NjBkenhsMG8ifQ.r3ufHWJMoGh_DCH3XDhDAg'; // Replace with your Mapbox access token
+
+    const initialCenter = [55.2708, 25.2048];
+    const initialZoom = 12;
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/raeddweik/cm1eudgu102ju01pb8tmdb81t', // Replace with your Mapbox style
+        center: initialCenter,
+        zoom: initialZoom,
+        pitch: 0,
+        bearing: 0
+    });
+
+    // Re-Center Button functionality
+    document.getElementById('recenterButton').addEventListener('click', function () {
+        map.flyTo({
+            center: initialCenter,
+            zoom: initialZoom,
+            pitch: 0,
+            bearing: 0,
+            speed: 2
+        });
+        resetAlertDetails();
+    });
+
+    // Alert data
+    const alertData = [
+        {
+            title: "Critical Inundation Alert",
+            location: "Business Bay, Al A'amal St",
+            time: "2024-10-01 12:00 PM",
+            severity: "Critical",
+            description: "Inundation level above critical threshold. Near multiple residential buildings.",
+            recommendation: "Deploy drainage pumps to affected areas and issue alerts for residents in high-risk zones.",
+            videoURL: "https://raedaldweik.github.io/flood-heatmap-data/cctv1.mp4",
+            analyticsURL: "https://raedaldweik.github.io/business_bay/"
+        },
+        {
+            title: "Critical Inundation Alert",
+            location: "Jumeirah, Jumeirah Beach Rd",
+            time: "2024-10-01 11:00 AM",
+            severity: "Critical",
+            description: "Inundation level above critical threshold. Within close proximity to multiple residential buildings and surgery center.",
+            recommendation: "Deploy drainage pumps to affected areas and issue alerts for residents in high-risk zones.",
+            videoURL: "https://raedaldweik.github.io/flood-heatmap-data/cctv2.mp4",
+            analyticsURL: "https://raedaldweik.github.io/Jumeirah-Beach-Rd/"
+        },
+        {
+            title: "Critical Inundation Alert",
+            location: "Jumeirah, Al Mina St",
+            time: "2024-10-01 9:00 AM",
+            severity: "Critical",
+            description: "Inundation level above critical threshold.",
+            recommendation: "Deploy drainage pumps to affected areas and issue alerts for residents in high-risk zones.",
+            videoURL: "https://raedaldweik.github.io/flood-heatmap-data/cctv3.mp4",
+            analyticsURL: "https://raedaldweik.github.io/Al-Mina-St/"
+        }
+    ];
+
+    // Function to update alert details
+    function updateAlertDetails(alert) {
+        const alertDetailsDiv = document.getElementById('alert-details');
+        alertDetailsDiv.innerHTML = `
+            <h3>${alert.title}</h3>
+            <div class="alert-info">
+                <label>Location:</label>
+                <p>${alert.location}</p>
+            </div>
+            <div class="alert-info">
+                <label>Time and Date:</label>
+                <p>${alert.time}</p>
+            </div>
+            <div class="alert-info">
+                <label>Flood Severity:</label>
+                <span class="alert-severity">${alert.severity}</span>
+            </div>
+            <div class="alert-info">
+                <label>Detailed Description:</label>
+                <p>${alert.description}</p>
+            </div>
+            <div class="alert-info">
+                <label>Recommendation:</label>
+                <p>${alert.recommendation}</p>
+            </div>
+        `;
+    }
+
+    // Function to reset alert details
+    function resetAlertDetails() {
+        const alertDetailsDiv = document.getElementById('alert-details');
+        alertDetailsDiv.innerHTML = `
+            <h3>Alert Details</h3>
+            <p>Select an alert to see details.</p>
+        `;
+        document.getElementById('action-box').style.display = 'none'; // Hide the action box
+    }
+
+    // Function to open the analytics modal
+    function openAnalyticsModal(url) {
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+
+        const modalContent = document.querySelector('#analyticsModal .modal-content');
+        modalContent.innerHTML = `
+            <button class="close-button" onclick="closeAnalyticsModal()">Close</button>
+        `;
+        modalContent.appendChild(iframe);
+
+        document.getElementById('analyticsModal').style.display = 'flex';
+    }
+
+    function closeAnalyticsModal() {
+        document.getElementById('analyticsModal').style.display = 'none';
+    }
+
+    // CCTV Video Popup functions
+    function openVideoPopup(videoURL) {
+        const overlay = document.getElementById('overlay');
+        const popup = document.getElementById('video-popup');
+        const videoElement = document.getElementById('video-element');
+        const videoSource = document.getElementById('video-source');
+
+        videoSource.src = videoURL;
+        videoElement.load();
+        overlay.style.display = 'block';
+        popup.style.display = 'flex';
+    }
+
+    function closeVideoPopup() {
+        const overlay = document.getElementById('overlay');
+        const popup = document.getElementById('video-popup');
+        const videoElement = document.getElementById('video-element');
+
+        videoElement.pause();
+        overlay.style.display = 'none';
+        popup.style.display = 'none';
+    }
+
+    // Function to handle "CCTV" button click
+    function callAgent() {
+        openVideoPopup(selectedAlert.videoURL);
+    }
+
+    // Function to handle alert clicks
+    let selectedAlert = null;
+    function handleAlertClick(index, coordinates, flyToOptions) {
+        selectedAlert = alertData[index];
+        map.flyTo(flyToOptions);
+        updateAlertDetails(selectedAlert);
+        document.getElementById('action-box').style.display = 'block'; // Show the action box on alert click
+
+        // Set the onclick handler for the "View Analytics" button
+        document.getElementById('viewAnalyticsButton').onclick = function() {
+            openAnalyticsModal(selectedAlert.analyticsURL);
+        };
+    }
+
+ // GeoJSON data for roads
+    const geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            // First road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.25862053266766, 25.18246161865602],
+                        [55.25902113391203, 25.182200514347116],
+                        [55.2594296015271, 25.181946229880694],
+                        [55.259845213497414, 25.181695956556936],
+                        [55.260256525963314, 25.181441417674066],
+                        [55.260635209886885, 25.18114948879726],
+                        [55.26092588718694, 25.18078653714791],
+                        [55.261109765278064, 25.180360392192455],
+                        [55.26119259218092, 25.179919253988714],
+                        [55.261163397136926, 25.17947511703288],
+                        [55.261013591771984, 25.179048399534324],
+                        [55.26076537390418, 25.17865975598113],
+                        [55.26047406829372, 25.178292573818226]
+                    ]
+                }
+            },
+            // Second road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.25854466353849, 25.182333302583473],
+                        [55.25894946234831, 25.18207740289843],
+                        [55.25936709546863, 25.181833390686236],
+                        [55.25978121374831, 25.181585349426697],
+                        [55.26019633214091, 25.18133508301858],
+                        [55.2605630163537, 25.181026702283845],
+                        [55.260830395458754, 25.180646809640322],
+                        [55.2609787947452, 25.180216190829128],
+                        [55.26102322178957, 25.17977300625951],
+                        [55.260939933894576, 25.179328713358643],
+                        [55.260752149445835, 25.178912162311036],
+                        [55.260492272870465, 25.178567291645862],
+                        [55.260329696939294, 25.1783655975824]
+                    ]
+                }
+            },
+            // Third road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.25851926683106, 25.182240270071702],
+                        [55.25877998047255, 25.182073057541032],
+                        [55.25897685567793, 25.18196728889582],
+                        [55.2591654804325, 25.181858156077894],
+                        [55.25941974481847, 25.18170380215355],
+                        [55.259673469025756, 25.181538335809876],
+                        [55.25987228042899, 25.181412848402545],
+                        [55.26007545662674, 25.18128242867202],
+                        [55.26024059791882, 25.18117058773646],
+                        [55.26035998710768, 25.181090350354637],
+                        [55.260455893588386, 25.18100739454941],
+                        [55.260553632337974, 25.180916749627443],
+                        [55.26062842272461, 25.18083017786742],
+                        [55.26075052867688, 25.180660576945513]
+                    ]
+                }
+            },
+            // Fourth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.25871593876877, 25.182557332137762],
+                        [55.25913019491108, 25.182310106694615],
+                        [55.25953303655044, 25.18204962832145],
+                        [55.25996551175817, 25.181816679915613],
+                        [55.26036818629771, 25.181575796462596],
+                        [55.26073338393712, 25.18123835011349],
+                        [55.26102875288046, 25.180903460417497],
+                        [55.261376808962666, 25.180572782658288],
+                        [55.261753042049634, 25.18028382963857],
+                        [55.26214054106762, 25.179990901143853],
+                        [55.26253636490853, 25.17971621509733],
+                        [55.2629300428286, 25.17946112522975],
+                        [55.26334006887555, 25.17919836759779]
+                    ]
+                }
+            },
+            // Fifth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.255633499381815, 25.181967326733115],
+                        [55.25593760126742, 25.18196955544346],
+                        [55.25626110494639, 25.181900636049093],
+                        [55.25649105000525, 25.181801606723326],
+                        [55.25677323825923, 25.18159613282687],
+                        [55.25708816679983, 25.18138005388353],
+                        [55.25740763746299, 25.181154820257717],
+                        [55.25774711821617, 25.180918221319587],
+                        [55.258181798610025, 25.18061521969834],
+                        [55.258627323322344, 25.180298132187133],
+                        [55.25911797984676, 25.179960570279974],
+                        [55.259549720688284, 25.17965095753668],
+                        [55.25983800914659, 25.179250506787824]
+                    ]
+                }
+            },
+            // Sixth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.26180759843513, 25.180437303361614],
+                        [55.26217152347104, 25.18014857876254],
+                        [55.262598468547196, 25.179888624651397],
+                        [55.26293173414439, 25.179686150134543],
+                        [55.2633417518457, 25.179500343886914],
+                        [55.26373870222611, 25.17936758447601],
+                        [55.26398927209405, 25.17932961619914],
+                        [55.26417639536314, 25.17948924898998],
+                        [55.26442108638702, 25.179755963125956],
+                        [55.2647757074227, 25.180118585029874],
+                        [55.265106101518086, 25.180308142736862],
+                        [55.26556424513777, 25.18033319606792],
+                        [55.26627045029491, 25.180218560310493]
+                    ]
+                }
+            },
+            // Seventh road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.26301087311373, 25.179594528289655],
+                        [55.26334902406694, 25.179396182215015],
+                        [55.26374941304579, 25.179272091245437],
+                        [55.26408133987508, 25.17917893610253],
+                        [55.26440357706329, 25.17908181976101],
+                        [55.26478212099039, 25.178906978856176],
+                        [55.26515533096628, 25.178675395309526],
+                        [55.265577297678334, 25.178401415326547],
+                        [55.26598927519362, 25.178138730773682],
+                        [55.26632689140558, 25.177930370310904],
+                        [55.266610977385795, 25.177760461602873],
+                        [55.26696399422755, 25.177611688318777],
+                        [55.26735584834242, 25.177522198850937]
+                    ]
+                }
+            },
+            // Eighth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.26384485993589, 25.1794534791306],
+                        [55.26368377578447, 25.17950057429003],
+                        [55.26348185254176, 25.179565061066512],
+                        [55.26325991265688, 25.17966881792546],
+                        [55.262925793189794, 25.179860582753534],
+                        [55.26265148363791, 25.180023925933384],
+                        [55.26239070738936, 25.180173625401352],
+                        [55.26219966242556, 25.18028714804838],
+                        [55.26205204997686, 25.180398778384998],
+                        [55.261932607391145, 25.180519440683156],
+                        [55.261851399607735, 25.180658102519274],
+                        [55.26180872518793, 25.18081006140939],
+                        [55.26181064568368, 25.180985168795047]
+                    ]
+                }
+            },
+            // Ninth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.272906791860635, 25.244919006462595],
+                        [55.272633899261194, 25.244539616368897],
+                        [55.27236848159333, 25.24417813608234],
+                        [55.27208761809405, 25.243793152155234],
+                        [55.271821593064374, 25.243413481496987],
+                        [55.27155231890859, 25.243022526811046],
+                        [55.2712901884706, 25.242650237727887],
+                        [55.27101169871867, 25.242277382762865],
+                        [55.270752971961, 25.241902358693693],
+                        [55.27047322461232, 25.241524348147635],
+                        [55.27019504151011, 25.24114755703485],
+                        [55.26991974937471, 25.24077352853395],
+                        [55.26966307150866, 25.240425603731296]
+                    ]
+                }
+            },
+            // Tenth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.27278044920956, 25.244981916957357],
+                        [55.27250356463867, 25.244612324986278],
+                        [55.272240206356315, 25.244236915453087],
+                        [55.271963862245, 25.243866247921844],
+                        [55.27167374411269, 25.243477411584323],
+                        [55.271404831259105, 25.243117190815127],
+                        [55.271130263762956, 25.242738181705064],
+                        [55.27085408440894, 25.24235672692538],
+                        [55.27058086821131, 25.24198806928132],
+                        [55.2703082644197, 25.24161154638358],
+                        [55.27003871063596, 25.241230658112627],
+                        [55.269778221739585, 25.240841335126007],
+                        [55.269511118880615, 25.240481576616858]
+                    ]
+                }
+            },
+            // Eleventh road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.27219744138756, 25.238040983286737],
+                        [55.27243103508337, 25.238422962092756],
+                        [55.27269416532869, 25.238824206078633],
+                        [55.27295231257847, 25.239201871741997],
+                        [55.273269149124104, 25.239565059728335],
+                        [55.27362164503106, 25.23986898328552],
+                        [55.274008976072196, 25.240152760793947],
+                        [55.274402246627375, 25.24042104266691],
+                        [55.27477989937992, 25.240718974755893],
+                        [55.27512155081419, 25.241048613883493],
+                        [55.27542324805185, 25.241397010455785],
+                        [55.275691733431614, 25.24176784720163],
+                        [55.27591727551882, 25.24217703440563]
+                    ]
+                }
+            },
+            // Twelfth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.27204875996674, 25.238144679344828],
+                        [55.272296204692, 25.23853485940647],
+                        [55.272554168022765, 25.238926264462265],
+                        [55.272813370389, 25.239297934269487],
+                        [55.27311397518184, 25.239683613379484],
+                        [55.27347992244239, 25.239974993406165],
+                        [55.27387240675722, 25.24026409004179],
+                        [55.27425238874358, 25.240549510524843],
+                        [55.27462267786376, 25.240840249284744],
+                        [55.274965656654246, 25.2411624947878],
+                        [55.27527160912257, 25.241511709043266],
+                        [55.27553396999275, 25.24188106305469],
+                        [55.27574594081017, 25.24224030776817]
+                    ]
+                }
+            },
+            // Thirteenth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.27324356218577, 25.24092484720593],
+                        [55.27365004684643, 25.241188010206244],
+                        [55.27427639972052, 25.241599054127533],
+                        [55.27446677182408, 25.241900173686545],
+                        [55.274593903221955, 25.24216400162696],
+                        [55.27481624896214, 25.24257504728918],
+                        [55.275026915371825, 25.24296716104358],
+                        [55.2752334290345, 25.243371792461787],
+                        [55.275450533159756, 25.243784037306767],
+                        [55.27567074416149, 25.24418297436138],
+                        [55.275867031751716, 25.244586265026186],
+                        [55.27604014531178, 25.24489925245011],
+                        [55.27622032607812, 25.24518566740602]
+                    ]
+                }
+            },
+            // Fourteenth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.251265971920304, 25.216177490937596],
+                        [55.25097280521669, 25.21580326470128],
+                        [55.25069454689529, 25.215453721445087],
+                        [55.250406774920464, 25.2150752393932],
+                        [55.25012029165788, 25.21470488532259],
+                        [55.249831338379664, 25.21433833394879],
+                        [55.24955315482262, 25.213959167582217],
+                        [55.24928776688583, 25.21358607048431],
+                        [55.24899558643932, 25.21322196843414],
+                        [55.24871521366194, 25.212862232542193],
+                        [55.24842970327367, 25.212486861438293],
+                        [55.24816308250914, 25.21211255762374],
+                        [55.247882146573545, 25.211729679200943]
+                    ]
+                }
+            },
+            // Fifteenth road
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [55.25138833541769, 25.216067987339855],
+                        [55.25109172460111, 25.21569894436439],
+                        [55.250804623916025, 25.215324165929474],
+                        [55.2505446771998, 25.214971458529618],
+                        [55.25025669668287, 25.214587595475948],
+                        [55.24995538642756, 25.214242361198174],
+                        [55.249690374244125, 25.21385139190356],
+                        [55.24939780164965, 25.213483073890302],
+                        [55.249124751081496, 25.213129918473214],
+                        [55.24884397141136, 25.21274347787167],
+                        [55.2485502774752, 25.21236491653204],
+                        [55.2482721563718, 25.211996292396805],
+                        [55.24801214013033, 25.21166375555093]
+                    ]
+                }
+            }
+        ]
+    };
+
+
+
+
+    // Flood Levels
+    const floodLevels = [
+        [0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0],  // Time 0
+        [0, 0, 0, 1, 3, 1, 0, 0, 0, 0, 0, 0],  // Time 1
+        [0, 0, 1, 2, 3, 2, 1, 0, 0, 0, 0, 0],  // Time 2
+        [0, 1, 2, 2, 3, 2, 2, 1, 0, 0, 0, 0],  // Time 3
+        [0, 1, 2, 3, 3, 3, 2, 2, 1, 0, 0, 0],  // Time 4
+        [0, 2, 2, 3, 3, 3, 3, 2, 2, 1, 0, 0],  // Time 5
+        [0, 2, 3, 3, 3, 3, 3, 3, 2, 2, 1, 0],  // Time 6
+        // Add more time steps if needed
+    ];
+
+    const colors = ['#eef91a', '#d36d64', '#b9467a', '#67009e'];
+
+    function updateLineGradient(time) {
+        geojson.features.forEach((feature, index) => {
+            const coordinates = feature.geometry.coordinates;
+            const gradient = floodLevels[time].map(level => colors[level]);
+            const step = 1 / (coordinates.length - 1);
+
+            const lineGradient = ['interpolate', ['linear'], ['line-progress']];
+            for (let i = 0; i < gradient.length; i++) {
+                lineGradient.push(i * step, gradient[i]);
+            }
+
+            map.setPaintProperty(`line-${index}`, 'line-gradient', lineGradient);
+        });
+    }
+
+
+    map.on('load', () => {
+        // Add road layers with line gradients
+        geojson.features.forEach((feature, index) => {
+            map.addSource(`line-${index}`, {
+                type: 'geojson',
+                lineMetrics: true,
+                data: feature
+            });
+
+            map.addLayer({
+                type: 'line',
+                source: `line-${index}`,
+                id: `line-${index}`,
+                paint: {
+                    'line-color': '#00435e',
+                    'line-width': 14,
+                    'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#00435e', 1, '#00435e']
+                },
+                layout: {
+                    'line-cap': 'round',
+                    'line-join': 'round'
+                }
+            });
+        });
+
+        updateLineGradient(0);
+
+        let isPlaying = false;
+        let playInterval;
+
+        function startAnimation() {
+            isPlaying = true;
+            document.getElementById('playPause').textContent = 'Pause';
+            playInterval = setInterval(() => {
+                const slider = document.getElementById('slider');
+                let currentValue = parseInt(slider.value, 10);
+                if (currentValue < floodLevels.length - 1) {
+                    slider.value = currentValue + 1;
+                } else {
+                    slider.value = 0;
+                }
+                updateLineGradient(parseInt(slider.value, 10));
+            }, 1000);
+        }
+
+        function stopAnimation() {
+            isPlaying = false;
+            document.getElementById('playPause').textContent = 'Forecast';
+            clearInterval(playInterval);
+        }
+
+        document.getElementById('playPause').addEventListener('click', () => {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                startAnimation();
+            }
+        });
+
+        document.getElementById('slider').addEventListener('input', (e) => {
+            const time = parseInt(e.target.value, 10);
+            updateLineGradient(time);
+        });
+
+       // Pulsing dot coordinates
+        const pulsingDotCoordinates = [55.26517078270922, 25.180744261306515];
+        const pulsingDotCoordinates2 = [55.24926211261692, 25.215564490569335];
+        const pulsingDotCoordinates3 = [55.271221405988285, 25.240610966102693];
+
+
+        const size = 200;
+        const pulsingDot = {
+            width: size,
+            height: size,
+            data: new Uint8Array(size * size * 4),
+
+            onAdd: function () {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                this.context = canvas.getContext('2d');
+            },
+
+            render: function () {
+                const duration = 1000;
+                const t = (performance.now() % duration) / duration;
+                const radius = (size / 2) * 0.3;
+                const outerRadius = (size / 2) * 0.7 * t + radius;
+                const context = this.context;
+
+                context.clearRect(0, 0, this.width, this.height);
+                context.beginPath();
+                context.arc(this.width / 2, this.height / 2, outerRadius, 0, Math.PI * 2);
+                context.fillStyle = `rgba(255, 200, 200, ${1 - t})`;
+                context.fill();
+
+                context.beginPath();
+                context.arc(this.width / 2, this.height / 2, radius, 0, Math.PI * 2);
+                context.fillStyle = 'rgba(255, 100, 100, 1)';
+                context.strokeStyle = 'white';
+                context.lineWidth = 2 + 4 * (1 - t);
+                context.fill();
+                context.stroke();
+
+                this.data = context.getImageData(0, 0, this.width, this.height).data;
+                map.triggerRepaint();
+
+                return true;
+            }
+        };
+
+        map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
+
+        // Function to add pulsing dot layers
+        function addPulsingDotLayer(id, coordinates, description) {
+            map.addSource(`dot-point-${id}`, {
+                'type': 'geojson',
+                'data': {
+                    'type': 'FeatureCollection',
+                    'features': [{
+                        'type': 'Feature',
+                        'properties': { 'description': description },
+                        'geometry': { 'type': 'Point', 'coordinates': coordinates }
+                    }]
+                }
+            });
+
+            map.addLayer({
+                'id': `layer-with-pulsing-dot-${id}`,
+                'type': 'symbol',
+                'source': `dot-point-${id}`,
+                'layout': { 'icon-image': 'pulsing-dot' },
+                'minzoom': 10,
+                'maxzoom': 16 // Dots disappear when zoomed in beyond zoom level 16
+            });
+
+            const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+
+            map.on('mouseenter', `layer-with-pulsing-dot-${id}`, (e) => {
+                map.getCanvas().style.cursor = 'pointer';
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const description = e.features[0].properties.description;
+                popup.setLngLat(coordinates).setHTML(description).addTo(map);
+            });
+
+            map.on('mouseleave', `layer-with-pulsing-dot-${id}`, () => {
+                map.getCanvas().style.cursor = '';
+                popup.remove();
+            });
+        }
+
+        // Add pulsing dots
+        addPulsingDotLayer(1, pulsingDotCoordinates, '<strong>Alert: Inundation Indicator</strong>');
+        addPulsingDotLayer(2, pulsingDotCoordinates2, '<strong>Alert: Inundation Indicator</strong>');
+        addPulsingDotLayer(3, pulsingDotCoordinates3, '<strong>Alert: Inundation Indicator</strong>');
+
+        // Event listeners for pulsing dots
+        map.on('click', 'layer-with-pulsing-dot-1', () => {
+            handleAlertClick(0, pulsingDotCoordinates, {
+                center: pulsingDotCoordinates,
+                zoom: 16,
+                bearing: 0,
+                pitch: 54.74690781493822,
+                speed: 2,
+                curve: 1
+            });
+        });
+
+        map.on('click', 'layer-with-pulsing-dot-2', () => {
+            handleAlertClick(1, pulsingDotCoordinates2, {
+                center: pulsingDotCoordinates2,
+                zoom: 16.10547444767218,
+                bearing: -137.6523247891704,
+                pitch: 58.114436721234064,
+                speed: 2,
+                curve: 1
+            });
+        });
+
+        map.on('click', 'layer-with-pulsing-dot-3', () => {
+            handleAlertClick(2, pulsingDotCoordinates3, {
+                center: pulsingDotCoordinates3,
+                zoom: 16.566879176226134,
+                bearing: 0,
+                pitch: 54.001085517497465,
+                speed: 2,
+                curve: 1
+            });
+        });
+
+    });
+
+</script>
+
+</body>
+</html>
